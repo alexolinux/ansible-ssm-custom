@@ -1,0 +1,10 @@
+---
+# tasks file for ssm_plugin
+
+- name: Install ssm session plugin in latest version
+  ansible.builtin.package:
+    name: https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm
+    state: present
+    disable_gpg_check: true
+  when: ansible_facts['os_family'] in ['RedHat', 'Amazon']
+  tags: [ install_ssm_plugin ]

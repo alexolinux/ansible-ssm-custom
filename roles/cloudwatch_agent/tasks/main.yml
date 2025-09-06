@@ -1,0 +1,26 @@
+---
+# tasks file for cloudwatch_agent
+# Instala e gerencia o servico amazon-cloudwatch-agent.
+
+- name: Instalar o amazon-cloudwatch-agent na versao mais recente
+  ansible.builtin.package:
+    name: amazon-cloudwatch-agent
+    state: latest
+  tags: [ install_cloudwatch_agent ]
+
+- name: Garantir que o servico amazon-cloudwatch-agent esteja rodando e habilitado
+  ansible.builtin.service:
+    name: amazon-cloudwatch-agent
+    state: started
+    enabled: true
+  tags: [ start_cloudwatch_agent ]
+
+- name: Deploy CloudWatch Agent config file
+  ansible.builtin.template:
+    src: amazon-cloudwatch-agent.json.j2
+    dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart CloudWatch Agent
+  tags: [ restart_cloudwatch_agent ]

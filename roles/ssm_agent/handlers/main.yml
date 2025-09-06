@@ -1,0 +1,9 @@
+---
+# handlers file for ssm_agent
+
+- name: Restart ssm-agent
+  ansible.builtin.service:
+    name: "{{ ssm_agent_service_name }}"
+    state: restarted
+  listen: "Restart ssm-agent"
+  become: true

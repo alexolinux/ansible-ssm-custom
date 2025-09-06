@@ -1,0 +1,70 @@
+---
+# Gather facts about installed packages
+- name: Check which NTP services are installed
+  ansible.builtin.package_facts:
+    manager: auto
+  tags: [ check_ntp_chrony ]
+
+# Set the primary fact for the installed NTP service or default to chrony
+- name: Set ntp_service fact
+  ansible.builtin.set_fact:
+    ntp_service: "{{ 'ntpd' if 'ntpd' in ansible_facts.packages else 'chrony' if 'chrony' in ansible_facts.packages else 'chrony' }}"
+  tags: [ always ]
+
+# Use the ntp_service fact to set additional facts for path and service name
+- name: Set configuration path and service name facts
+  ansible.builtin.set_fact:
+    current_ntp_conf: "{{ ntp_services[ntp_service].config_path }}"
+    current_ntp_name: "{{ ntp_services[ntp_service].service_name }}"
+  tags: [ always ]
+
+# Install the chosen NTP service if neither is installed
+- name: Ensure the chosen NTP service is installed
+  ansible.builtin.package:
+    name: "{{ ntp_service }}"
+    state: present
+  when: not ('ntpd' in ansible_facts.packages or 'chrony' in ansible_facts.packages)
+  tags: [ install_ntp ]
+
+# Ensure the correct NTP service is enabled and running
+- name: Ensure the NTP service is enabled and running
+  ansible.builtin.service:
+    name: "{{ current_ntp_name }}"
+    state: started
+    enabled: true
+  tags: [ start_ntp ]
+
+# Read current NTP config
+- name: Read current NTP config
+  ansible.builtin.slurp:
+    path: "{{ current_ntp_conf }}"
+  register: ntp_conf_content
+  tags: [ read_ntp_content ]
+
+- name: Decode config content
+  ansible.builtin.set_fact:
+    ntp_conf_lines: "{{ ntp_conf_content.content | b64decode | split('\n') }}"
+  tags: [ decode_ntp_content ]
+
+- name: Filter out all server lines and add AWS servers
+  ansible.builtin.set_fact:
+    filtered_ntp_conf_lines: >-
+      {{
+        ntp_conf_lines
+        | reject('match', '^server ')
+        | list
+        + aws_ntp_servers
+      }}
+  tags: [ filter_ntp_content ]
+
+- name: Write filtered config if changed
+  ansible.builtin.copy:
+    dest: "{{ current_ntp_conf }}"
+    content: "{{ filtered_ntp_conf_lines | join('\n') }}\n"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  when: ntp_conf_lines != filtered_ntp_conf_lines
+  notify: Restart NTP Service
+  tags: [ copy_ntp_diff ]

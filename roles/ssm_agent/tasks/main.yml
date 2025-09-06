@@ -1,0 +1,34 @@
+---
+# Install/manage amazon-ssm-agent service.
+
+- name: Install SSM Agent on Amazon Linux, CentOS, RHEL
+  ansible.builtin.yum:
+    name: "{{ ssm_agent_package_name }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+  notify: Restart ssm-agent
+  tags: [ Install_ssm_agent_rhel ]
+
+- name: Install SSM Agent on Ubuntu
+  ansible.builtin.apt:
+    name: "{{ ssm_agent_package_name }}"
+    state: present
+  when: ansible_os_family == "Debian"
+  notify: Restart ssm-agent
+  tags: [ Install_ssm_agent_debian ]
+
+- name: Ensure ssm-user exists
+  ansible.builtin.user:
+    name: "ssm-user"
+    state: present
+    comment: "AWS SSM Agent System User"
+  become: true
+  tags: [ create_ssm_user]
+
+- name: Ensure SSM Agent service is enabled and running
+  become: true    # This task typically requires elevated permissions
+  ansible.builtin.service:
+    name: "{{ ssm_agent_service_name }}"
+    state: started
+    enabled: true
+  tags: [ start_ssm_agent ]

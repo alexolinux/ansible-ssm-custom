@@ -1,0 +1,17 @@
+---
+# vars file for ntp_conf
+
+ntp_services:
+  ntpd:
+    service_name: ntpd
+    config_path: /etc/ntp.conf
+  chrony:
+    service_name: chronyd
+    config_path: /etc/chrony.conf
+
+aws_ntp_servers:
+  - 'server 169.254.169.123 prefer iburst minpoll 4 maxpoll 4'
+  - 'server 0.amazon.pool.ntp.org iburst'
+  - 'server 1.amazon.pool.ntp.org iburst'
+  - 'server 2.amazon.pool.ntp.org iburst'
+  - 'server 3.amazon.pool.ntp.org iburst'

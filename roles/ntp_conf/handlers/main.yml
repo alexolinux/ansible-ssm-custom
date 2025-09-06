@@ -1,0 +1,9 @@
+---
+# handlers.yml
+# Tasks that are only executed when notified by a task.
+
+- name: Restart NTP Service
+  ansible.builtin.service:
+    name: "{{ current_ntp_name }}"
+    state: restarted
+  listen: "Restart NTP Service"

@@ -1,0 +1,5 @@
+---
+# vars file for ssm_agent
+
+ssm_agent_package_name: amazon-ssm-agent
+ssm_agent_service_name: amazon-ssm-agent

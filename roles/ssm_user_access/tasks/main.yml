@@ -1,0 +1,33 @@
+---
+# https://linux.die.net/man/5/access.conf
+
+- name: Check if ssm-user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: ssm-user
+  register: ssm_user_check
+  changed_when: false
+  ignore_errors: true
+  tags: [ ssm_user_access ]
+
+- name: Inform that the configuration for ssm-user will be ignored
+  ansible.builtin.debug:
+    msg: "User 'ssm-user' does not exist on the system. Configuration will be ignored."
+  when: ssm_user_check.ansible_facts.getent_passwd is not defined or
+        ssm_user_check.ansible_facts.getent_passwd['ssm-user'] is not defined
+  tags: [ ssm_user_access ]
+
+- name: Ensure ssm-user has ALL access before deny-all line in /etc/security/access.conf
+  ansible.builtin.lineinfile:
+    path: /etc/security/access.conf
+    line: '+:ssm-user:ALL'
+    state: present
+    insertafter: '^.*(?=- : ALL : ALL)$'
+    backup: yes
+    owner: root
+    group: root
+    mode: '0644'
+    create: true
+  when: ssm_user_check.ansible_facts.getent_passwd is defined and
+        ssm_user_check.ansible_facts.getent_passwd['ssm-user'] is defined
+  tags: [ ssm_user_access ]
