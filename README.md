@@ -1,4 +1,4 @@
-# ansible-ssm-custom TBD
+# ansible-ssm-custom
 
 --------------------
 
