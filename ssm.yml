@@ -15,7 +15,6 @@
 
   roles:
     # The order of the roles is important. They are executed sequentially
-    - role: user_password_status
     - role: ntp_conf
     - role: aws_cli_installer
     - role: ssm_agent
@@ -25,3 +24,4 @@
     - role: imds_manager
       vars:
         imds_enforce: true  # Enforce IMDSv2
+    - role: user_password_status
