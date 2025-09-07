@@ -10,7 +10,29 @@ Project containing a set of roles required for SSM service.
 
 - `python3`
 - `ansible`
-- [session-manager-plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
+- [session-manager-plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) installed in the ansible controller
+
+## Dependencies
+
+EC2 instances require an IAM Role with the following policies attached to allow the roles to function correctly.
+
+- **AmazonSSMManagedInstanceCore**: The standard AWS managed policy for SSM.
+- **Custom policy for IMDS**: A custom IAM policy is required to allow the `imds_manager` role to modify EC2 instance metadata options.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "ec2:ModifyInstanceMetadataOptions",
+            "Resource": "arn:aws:ec2:*:*:instance/*"
+        }
+    ]
+}
+```
+
+Create and attach an IAM Role with these policies in the AWS ec2 instances.
 
 ## Roles
 
@@ -79,26 +101,6 @@ Or using the command line:
 
 ```bash
 ansible-playbook ssm.yml -e "imds_enforce=true"
-```
-
-## Dependencies
-
-EC2 instances require an IAM Role with the following policies attached to allow the roles to function correctly.
-
-- **AmazonSSMManagedInstanceCore**: The standard AWS managed policy for SSM.
-- **Custom policy for IMDS**: A custom IAM policy is required to allow the `imds_manager` role to modify EC2 instance metadata options.
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "ec2:ModifyInstanceMetadataOptions",
-            "Resource": "arn:aws:ec2:*:*:instance/*"
-        }
-    ]
-}
 ```
 
 ## Example Playbook
