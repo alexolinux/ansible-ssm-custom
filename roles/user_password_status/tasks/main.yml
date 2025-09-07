@@ -1,0 +1,50 @@
+---
+- name: Check password status for specified users
+  ansible.builtin.command: "chage -l {{ item }}"
+  register: chage_output
+  loop: "{{ users_to_check }}"
+  changed_when: false
+  become: true
+  ignore_errors: true
+
+- name: Check password lock status for specified users
+  ansible.builtin.command: "passwd -S {{ item }}"
+  register: passwd_output
+  loop: "{{ users_to_check }}"
+  changed_when: false
+  become: true
+  ignore_errors: true
+
+- name: Set password details fact
+  set_fact:
+    password_details: |
+      {{ password_details | default('') }}
+      --------------------------------------------------
+      User: {{ item.0.item }}
+      {% set passwd_lines = item.1.stdout | default('') | split(' ') %}
+      {% if passwd_lines | length > 1 %}
+      Password Status: {% set status = passwd_lines[1] %} {% if status == 'PS' %}Password Set{% elif status == 'LK' %}Locked{% elif status == 'NP' %}No Password{% else %}Unknown{% endif %}
+      {% else %}
+      Password Status: Not available in check mode
+      {% endif %}
+      {% if item.0.stdout_lines is defined %}
+      {% for line in item.0.stdout_lines %}
+      {% if 'Last password change' in line %}
+      Last password change: {{ line.split(':')[1] | trim }}
+      {% elif 'Password expires' in line %}
+      Password expires: {{ line.split(':')[1] | trim }}
+      {% elif 'Account expires' in line %}
+      Account expires: {{ line.split(':')[1] | trim }}
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+  when: item.0.failed == false and item.1.failed == false
+  loop: "{{ chage_output.results | zip(passwd_output.results) | list }}"
+  loop_control:
+    label: "{{ item.0.item }}"
+
+- name: Display password expiration details
+  ansible.builtin.debug:
+    msg: "{{ password_details.split('\n') }}"
+  run_once: true
+  when: password_details is defined

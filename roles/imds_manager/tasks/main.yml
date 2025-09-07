@@ -1,0 +1,45 @@
+---
+- name: Check if IMDSv2 is enforced by trying to access metadata without a token
+  ansible.builtin.uri:
+    url: http://169.254.169.254/latest/meta-data/
+    method: GET
+    status_code: 401
+  register: imds_check
+  ignore_errors: true
+
+- name: Set IMDSv2 status fact
+  set_fact:
+    imds_v2_enforced: "{{ imds_check.status is defined and imds_check.status == 401 }}"
+
+- name: Get IMDSv2 token if required
+  ansible.builtin.uri:
+    url: http://169.254.169.254/latest/api/token
+    method: PUT
+    headers:
+      X-aws-ec2-metadata-token-ttl-seconds: 21600
+    return_content: yes
+  register: imds_token
+  when: imds_v2_enforced
+
+- name: Get EC2 instance ID
+  ansible.builtin.uri:
+    url: http://169.254.169.254/latest/meta-data/instance-id
+    return_content: yes
+    headers: "{{ imds_v2_enforced | ternary({'X-aws-ec2-metadata-token': imds_token.content}, {}) }}"
+  register: instance_id_fact
+
+- name: Report IMDSv2 status
+  ansible.builtin.debug:
+    msg: "IMDSv2 is {{ imds_v2_enforced | ternary('enforced', 'not enforced/optional') }} on this instance."
+  when: not imds_enforce | default(false)
+
+- name: Enforce IMDSv2 on this instance
+  ansible.builtin.command: >
+    aws ec2 modify-instance-metadata-options
+    --instance-id {{ instance_id_fact.content }}
+    --http-tokens required
+    --http-put-response-hop-limit 2
+  when:
+    - imds_enforce | default(false)
+    - not imds_v2_enforced
+  changed_when: true

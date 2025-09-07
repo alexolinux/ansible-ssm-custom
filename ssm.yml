@@ -1,0 +1,27 @@
+---
+# Main playbook
+- name: Ensure base configuration for EC2 instances
+  hosts: ec2_hosts
+  become: true
+
+  tasks:
+    - name: Update package manager cache
+      ansible.builtin.package:
+        name: "*"
+        state: latest
+        update_cache: true
+
+      tags: [ update_package ]
+
+  roles:
+    # The order of the roles is important. They are executed sequentially
+    - role: user_password_status
+    - role: ntp_conf
+    - role: aws_cli_installer
+    - role: ssm_agent
+    - role: cloudwatch_agent
+    - role: ssm_plugin
+    - role: ssm_user_access
+    - role: imds_manager
+      vars:
+        imds_enforce: true  # Enforce IMDSv2

@@ -1,0 +1,47 @@
+---
+# tasks file for aws_cli_installer
+
+- name: Check for existing aws cli installation
+  ansible.builtin.command: command -v aws
+  register: aws_cli_path
+  changed_when: false
+  ignore_errors: true
+
+- name: Install AWS CLI v2 if not present
+  when: aws_cli_path.rc != 0
+  become: true
+  block:
+    - name: Install unzip package
+      ansible.builtin.package:
+        name: unzip
+        state: present
+
+    - name: Set architecture mapping for AWS CLI
+      ansible.builtin.set_fact:
+        aws_arch_map:
+          x86_64: x86_64
+          aarch64: aarch64
+          arm64: aarch64
+
+    - name: Determine AWS CLI architecture from mapping
+      ansible.builtin.set_fact:
+        aws_cli_arch: "{{ aws_arch_map[ansible_architecture] | default('x86_64') }}"
+
+    - name: Download and unzip AWS CLI v2 installer
+      ansible.builtin.unarchive:
+        src: "https://awscli.amazonaws.com/awscli-exe-linux-{{ aws_cli_arch }}.zip"
+        dest: /tmp
+        remote_src: yes
+        creates: /tmp/aws/install
+        mode: '0755'
+
+    - name: Run AWS CLI installer
+      ansible.builtin.command:
+        cmd: /tmp/aws/install
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Clean up AWS CLI installer directory
+      ansible.builtin.file:
+        path: /tmp/aws
+        state: absent
