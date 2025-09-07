@@ -1,4 +1,5 @@
 # Ansible runtime and backups
+.ansible/
 *.original
 *.tmp
 *.bkp
