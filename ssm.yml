@@ -1,5 +1,5 @@
 ---
-# Main playbook
+# Main playbook Template
 - name: Ensure base configuration for EC2 instances
   hosts: ec2_hosts
   become: true
